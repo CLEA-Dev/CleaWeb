@@ -43,7 +43,7 @@
             </li>
 
             <li class="relative">
-              <RouterLink to="/coach-validation" v-slot="{ isActive }">
+              <RouterLink to="/CoachValid" v-slot="{ isActive }">
                 <div v-if="isActive" class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
                 <div :class="[
                   'flex items-center gap-3 pl-6 pr-4 py-3 transition-all',
@@ -55,7 +55,7 @@
             </li>
 
             <li class="relative">
-              <RouterLink to="/content-management" v-slot="{ isActive }">
+              <RouterLink to="/ContentMgr" v-slot="{ isActive }">
                 <div v-if="isActive" class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
                 <div :class="[
                   'flex items-center gap-3 pl-6 pr-4 py-3 transition-all',

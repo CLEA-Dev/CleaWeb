@@ -12,6 +12,18 @@ const routes = [
     name: "Users",
     component: () => import("../views/users.vue"),
   },
+
+  {
+    path: "/CoachValid",
+    name: "CoachValidation",
+    component: () => import("../views/CoachValid.vue"),
+  },
+
+  {
+    path: "/ContentMgr",
+    name: "ContetManagement",
+    component: () => import("../views/ContentMgr.vue"),
+  },
 ];
 
 const router = createRouter({
