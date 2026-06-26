@@ -5,67 +5,35 @@
 <template>
   <div class="flex min-h-screen bg-slate-50 text-slate-800">
     
-    <aside class="w-64 bg-white border-r border-slate-100 flex flex-col justify-between">
-      
+    <aside v-if="!$route.meta.hideNavigation" class="w-64 bg-white border-r border-slate-100 flex flex-col justify-between">
       <div>
         <div class="p-6">
           <h2 class="text-xl font-bold text-emerald-800 tracking-wide">CLEA Admin</h2>
           <p class="text-xs text-slate-400 mt-1">Back Office Management</p>
         </div>
-
+        
         <nav class="mt-2">
           <ul class="space-y-1">
-            
             <li class="relative">
-              <RouterLink to="/" v-slot="{ isActive }">
-                <div v-if="isActive" class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
-                
-                <div :class="[
-                  'flex items-center gap-3 pl-6 pr-4 py-3 transition-all',
-                  isActive ? 'bg-sky-50 text-emerald-700 font-medium' : 'text-slate-500 hover:bg-slate-50'
-                ]">
-                  <span>Dashboard</span>
-                </div>
-              </RouterLink>
-            </li >
-
-            <li class="relative">
-              <RouterLink to="/users" v-slot="{ isActive }">
-                <div v-if="isActive" class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
-                
-                <div :class="[
-                  'flex items-center gap-3 pl-6 pr-4 py-3 transition-all',
-                  isActive ? 'bg-sky-50 text-emerald-700 font-medium' : 'text-slate-500 hover:bg-slate-50'
-                ]">
-                  <span>Utilisatrices</span>
-                </div>
+              <RouterLink to="/" class="flex items-center gap-3 pl-6 pr-4 py-3 text-slate-500 hover:bg-slate-50">
+                <span>Tableau de bord</span>
               </RouterLink>
             </li>
-
             <li class="relative">
-              <RouterLink to="/CoachValid" v-slot="{ isActive }">
-                <div v-if="isActive" class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
-                <div :class="[
-                  'flex items-center gap-3 pl-6 pr-4 py-3 transition-all',
-                  isActive ? 'bg-sky-50 text-emerald-700 font-medium' : 'text-slate-500 hover:bg-slate-50'
-                ]">
-                  <span>Coach Validation</span>
-                </div>
+              <RouterLink to="/users" class="flex items-center gap-3 pl-6 pr-4 py-3 text-slate-500 hover:bg-slate-50">
+                <span>Utilisatrices</span>
               </RouterLink>
             </li>
-
             <li class="relative">
-              <RouterLink to="/ContentMgr" v-slot="{ isActive }">
-                <div v-if="isActive" class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-600"></div>
-                <div :class="[
-                  'flex items-center gap-3 pl-6 pr-4 py-3 transition-all',
-                  isActive ? 'bg-sky-50 text-emerald-700 font-medium' : 'text-slate-500 hover:bg-slate-50'
-                ]">
-                  <span>Content Management</span>
-                </div>
+              <RouterLink to="/CoachValid" class="flex items-center gap-3 pl-6 pr-4 py-3 text-slate-500 hover:bg-slate-50">
+                <span>Validation des entraîneurs</span>
               </RouterLink>
             </li>
-
+            <li class="relative">
+              <RouterLink to="/ContentMgr" class="flex items-center gap-3 pl-6 pr-4 py-3 text-slate-500 hover:bg-slate-50">
+                <span>Gestion de contenu</span>
+              </RouterLink>
+            </li>
           </ul>
         </nav>
       </div>
@@ -78,11 +46,10 @@
           <span>Logout</span>
         </div>
       </div>
-
     </aside>
 
     <main class="flex-1 flex flex-col bg-slate-50">
-      <header class="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8">
+      <header v-if="!$route.meta.hideNavigation" class="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8">
         <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg w-80">
   <span>🔍</span>
   <input 
