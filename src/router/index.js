@@ -7,21 +7,18 @@ const routes = [
     component: () => import("../views/Dashboard.vue"),
     meta: { hideNavigation: false, requiresAuth: true },
   },
-
   {
     path: "/users",
     name: "Users",
     component: () => import("../views/users.vue"),
     meta: { hideNavigation: false, requiresAuth: true },
   },
-
   {
     path: "/CoachValid",
     name: "CoachValidation",
     component: () => import("../views/CoachValid.vue"),
     meta: { hideNavigation: false, requiresAuth: true },
   },
-
   {
     path: "/ContentMgr",
     name: "ContetManagement",
@@ -32,7 +29,12 @@ const routes = [
     path: "/login",
     name: "Login",
     component: () => import("../views/login.vue"),
-    meta: { hideNavigation: true }, //l'etiquette
+    meta: { hideNavigation: true },
+  },
+  {
+    path: "/profil",
+    name: "profile",
+    component: () => import("../views/profil.vue"),
   },
 ];
 
@@ -42,20 +44,17 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  // 1. On vérifie si la route demande une authentification
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
 
-  // 2. On vérifie si on a un token stocké (on simulera avec false pour tester)
-  const isAuthenticated = localStorage.getItem("token");
+  // ✅ FIX: Récupère la clé 'access_token' OU 'token'
+  const isAuthenticated =
+    localStorage.getItem("access_token") || localStorage.getItem("token");
 
   if (requiresAuth && !isAuthenticated) {
-    // Si la page est privée et qu'on n'est pas connecté, on redirige vers le login
     next("/login");
   } else if (to.path === "/login" && isAuthenticated) {
-    // Si on est déjà connecté et qu'on essaie d'aller sur login, on renvoie au dashboard
     next("/");
   } else {
-    // Sinon, on laisse passer !
     next();
   }
 });
