@@ -47,14 +47,41 @@ export function updateMonMotDePasse(data) {
   return client.patch("/user/password", data);
 }
 
-// Liste des utilisatrices
-export function fetchUsers() {
-  return client.get("/users");
+export function fetchUsers(params = {}) {
+  return client.get("/admin/users", { params });
 }
 
-// Supprimer une utilisatrice
+export function createUser(data) {
+  return client.post("/admin/users", data);
+}
+
+// Consulter un utilisateur spécifique
+export function getUserDetails(id) {
+  return client.get(`/admin/users/${id}`);
+}
+
+// Mettre à jour un utilisateur
+export function updateUser(id, data) {
+  return client.put(`/admin/users/${id}`, data);
+}
+
 export function deleteUser(id) {
-  return client.delete(`/users/${id}`);
+  return client.delete(`/admin/users/${id}`);
+}
+
+// Restaurer un utilisateur supprimé
+export function restoreUser(id) {
+  return client.post(`/admin/users/${id}/restore`);
+}
+
+// Changer le rôle d'un utilisateur
+export function updateUserRole(id, role) {
+  return client.patch(`/admin/users/${id}/role`, { role });
+}
+
+// Activer ou désactiver un utilisateur
+export function updateUserStatus(id, is_active) {
+  return client.patch(`/admin/users/${id}/status`, { is_active });
 }
 
 export function fetchDashboardData() {

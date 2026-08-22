@@ -1,32 +1,30 @@
 <template>
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 text-slate-800">
     <div>
       <h1 class="text-2xl font-bold text-slate-800 tracking-tight">Gestion des Utilisatrices</h1>
       <p class="text-sm text-slate-500 mt-1">Consultez, filtrez et gérez l'ensemble des comptes de la plateforme.</p>
     </div>
 
     <div class="flex items-center gap-3">
-      <button class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-xs cursor-pointer">
+      <!-- BOUTON EXPORT CSV -->
+      <button @click="exportToCSV" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-xs cursor-pointer">
         <Download class="w-4 h-4 text-slate-400" />
         Exportateur CSV
       </button>
 
-      <button class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer">
+      <!-- BOUTON NOUVELLE UTILISATRICE -->
+      <button @click="showAddModal = true" class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer">
         <Plus class="w-4 h-4" />
         Nouvelle utilisatrice
       </button>
     </div>
   </div>
 
-  <!-- GRILLE DE STATS (Devient dynamique grâce au computed 'stats') -->
+  <!-- GRILLE DE STATS -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div 
-      v-for="stat in stats" 
-      :key="stat.id" 
-      class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between"
-    >
+    <div v-for="stat in stats" :key="stat.id" class="bg-white p-6 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between font-sans">
       <div>
-        <p class="text-sm font-medium text-slate-400">{{ stat.titre }}</p>
+        <p class="text-sm font-medium text-slate-400 uppercase tracking-widest">{{ stat.titre }}</p>
         <h3 class="text-2xl font-bold text-slate-800 mt-1">{{ stat.valeur }}</h3>
       </div>
       <div :class="['p-3 rounded-lg', stat.couleurIcone]">
@@ -35,196 +33,275 @@
     </div>
   </div>
 
+  <!-- TABLEAU ET FILTRES -->
   <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-    <div class="p-5 border-b border-slate-100">
-      <h2 class="text-lg font-semibold text-slate-800">Liste des utilisatrices</h2>
-    </div>
-
     <div class="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm">
       <div class="flex flex-wrap items-center gap-3">
-        <select class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 outline-none focus:border-emerald-500 cursor-pointer">
-          <option>Toutes les catégories</option>
+        <div class="relative flex items-center">
+          <Search class="absolute left-3 w-4 h-4 text-slate-400" />
+          <input v-model="filters.search" @input="debounceSearch" placeholder="Rechercher..." class="bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-slate-700 outline-none focus:border-emerald-500" />
+        </div>
+        <select v-model="filters.role" @change="loadUsers" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 outline-none">
+          <option value="">Tous les rôles</option>
+          <option value="admin">Administrateur</option>
+          <option value="mentor">Mentor</option>
+          <option value="user">Utilisatrice</option>
         </select>
-        <select class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 outline-none focus:border-emerald-500 cursor-pointer">
-          <option>Tous les statuts</option>
+        <select v-model="filters.status" @change="loadUsers" class="bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-700 outline-none">
+          <option value="">Tous les statuts</option>
+          <option value="active">Actives</option>
+          <option value="inactive">Inactives</option>
         </select>
-        <button class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium px-3 py-2 cursor-pointer">
-          <SlidersHorizontal class="w-4 h-4 text-slate-400" />
-          Filtres avancés
-        </button>
       </div>
-
-      <div class="text-slate-400 text-xs sm:text-sm">
-        Affichage de <span class="font-medium text-slate-700">{{ users.length > 0 ? '1 - ' + users.length : '0' }}</span> sur <span class="font-medium text-slate-700">{{ users.length }}</span>
+      <div class="text-slate-400 text-xs font-bold uppercase tracking-tighter">
+        Total : <span class="text-slate-700">{{ meta.total || 0 }}</span> utilisatrices
       </div>
     </div>
 
-    <!-- ÉTAT DE CHARGEMENT -->
-    <div v-if="loading" class="p-20 text-center text-slate-400">
-      <p class="animate-pulse">Chargement des données en cours...</p>
-    </div>
+    <div v-if="loading" class="p-20 text-center text-slate-400 italic animate-pulse font-medium">Chargement des données...</div>
 
-    <!-- ÉTAT D'ERREUR -->
-    <div v-else-if="error" class="p-20 text-center text-red-500 bg-red-50/50">
-      <p>{{ error }}</p>
-      <button @click="loadUsers" class="mt-2 underline text-sm cursor-pointer">Réessayer</button>
-    </div>
-
-    <!-- TABLEAU DYNAMIQUE -->
     <div v-else class="overflow-x-auto">
       <table class="w-full text-left border-collapse">
         <thead>
-          <tr class="bg-slate-50 border-b border-slate-100">
-            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Utilisatrice</th>
-            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Statut</th>
-            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Inscription</th>
-            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Dernière connexion</th>
-            <th class="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+          <tr class="bg-slate-50 border-b border-slate-100 font-sans text-slate-400">
+            <th class="p-4 text-[10px] font-black uppercase tracking-widest">Utilisatrice</th>
+            <th class="p-4 text-[10px] font-black uppercase tracking-widest">Statut</th>
+            <th class="p-4 text-[10px] font-black uppercase tracking-widest text-right">Actions</th>
           </tr>
         </thead>
-
         <tbody class="divide-y divide-slate-100">
           <tr v-for="user in users" :key="user.id" class="hover:bg-slate-50/50 transition-colors">
             <td class="p-4 flex items-center gap-3">
-              <!-- Avatar dynamique avec fallback si pas d'image -->
-              <img 
-                :src="user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=random`" 
-                alt="Avatar" 
-                class="w-10 h-10 rounded-full object-cover bg-slate-100" 
-              />
+              <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-400 border border-slate-200 overflow-hidden shadow-xs">
+                <img :src="`https://ui-avatars.com/api/?name=${user.name}&background=random`" />
+              </div>
               <div>
-                <div class="font-semibold text-slate-800 text-sm">{{ user.name }}</div>
-                <div class="text-xs text-slate-400">{{ user.email }}</div>
+                <div class="font-bold text-slate-800 text-sm tracking-tight">{{ user.name }}</div>
+                <div class="text-[10px] text-slate-400 font-bold tracking-tight">
+                  <span class="uppercase">{{ user.role }}</span> • <span class="lowercase font-medium">{{ user.email }}</span>
+                </div>
               </div>
             </td>
-
-            <td class="p-4 text-sm">
-              <span :class="['inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border', getStatusClass(user.status)]">
-                <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
-                {{ user.status || 'Actif' }}
+            <td class="p-4">
+              <span :class="['inline-flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-black uppercase rounded-full border tracking-widest', getStatusClass(user.is_active)]">
+                {{ user.is_active ? 'Actif' : 'Désactivé' }}
               </span>
             </td>
-
-            <td class="p-4 text-sm text-slate-500">
-              {{ formatDate(user.created_at) }}
-            </td>
-
-            <td class="p-4 text-sm text-slate-500">
-              {{ user.last_login_at ? formatDate(user.last_login_at) : 'Inconnu' }}
-            </td>
-
-            <td class="p-4 text-sm text-right">
+            <td class="p-4 text-right">
               <div class="flex items-center justify-end gap-2">
-                <button class="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer" title="Voir les détails">
-                  <Eye class="w-4 h-4" />
-                </button>
-                
-                <button v-if="user.status === 'Actif' || user.status === 'active'" class="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors cursor-pointer" title="Suspendre">
-                  <CirclePlay class="w-4 h-4 text-amber-500" />
-                </button>
-
-                <button v-else class="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors cursor-pointer" title="Réactiver">
-                  <CirclePlay class="w-4 h-4" />
-                </button>
-                
-                <button class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer" title="Désactiver">
-                  <UserX class="w-4 h-4" />
-                </button>
+                <button @click="handleEditName(user)" class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all cursor-pointer"><Edit2 class="w-3.5 h-3.5" /></button>
+                <button @click="toggleStatus(user)" :class="user.is_active ? 'text-amber-500 hover:bg-amber-50' : 'text-emerald-500 hover:bg-emerald-50'" class="p-1.5 rounded-md transition-all cursor-pointer"><CirclePlay class="w-3.5 h-3.5" /></button>
+                <button @click="confirmDelete(user.id)" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all cursor-pointer"><UserX class="w-3.5 h-3.5" /></button>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
 
-      <!-- PAGINATION (Statique pour le moment) -->
-      <div class="p-4 bg-white border-t border-slate-100 flex items-center justify-between gap-4 text-sm">
-        <button class="px-3 py-1.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors cursor-pointer disabled:opacity-50">
-          Précédent
-        </button>
-        <div class="flex items-center gap-1.5">
-          <button class="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-600 text-white font-medium text-xs sm:text-sm cursor-pointer">1</button>
-        </div>
-        <button class="px-3 py-1.5 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors cursor-pointer">
-          Suivant
-        </button>
+    <!-- PAGINATION -->
+    <div class="p-4 bg-white border-t border-slate-100 flex items-center justify-between gap-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+      <button @click="changePage(meta.current_page - 1)" :disabled="meta.current_page === 1" class="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer transition-colors">Précédent</button>
+      <div>Page {{ meta.current_page }} / {{ meta.last_page }}</div>
+      <button @click="changePage(meta.current_page + 1)" :disabled="meta.current_page === meta.last_page" class="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer transition-colors">Suivant</button>
+    </div>
+  </div>
+
+  <!-- MODAL : AJOUT NOUVELLE UTILISATRICE -->
+  <div v-if="showAddModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100">
+      <div class="p-6 border-b border-slate-50 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-slate-800 tracking-tight">Ajouter un nouveau compte</h2>
+        <button @click="showAddModal = false" class="text-slate-400 hover:text-slate-600 cursor-pointer"><X class="w-5 h-5" /></button>
       </div>
+
+      <form @submit.prevent="submitCreateUser" class="p-8 space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nom complet</label>
+            <input v-model="newUser.name" required type="text" placeholder="Amina Diallo" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Rôle</label>
+            <select v-model="newUser.role" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm">
+              <option value="user">Utilisatrice</option>
+              <option value="mentor">Mentor</option>
+              <option value="admin">Administrateur</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Adresse Email</label>
+          <input v-model="newUser.email" required type="email" placeholder="amina@example.com" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm" />
+          <p v-if="modalErrors.email" class="text-rose-500 text-[10px] mt-1">{{ modalErrors.email[0] }}</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
+            <input v-model="newUser.password" required type="password" placeholder="••••••••" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Confirmation</label>
+            <input v-model="newUser.password_confirmation" required type="password" placeholder="••••••••" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 text-sm" />
+          </div>
+        </div>
+
+        <div class="pt-4 flex gap-3">
+          <button @click="showAddModal = false" type="button" class="flex-1 px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer">Annuler</button>
+          <button :disabled="isSubmitting" type="submit" class="flex-1 px-4 py-2 bg-emerald-600 text-white text-sm font-bold rounded-lg hover:bg-emerald-700 shadow-md shadow-emerald-200 transition-all cursor-pointer">
+            {{ isSubmitting ? 'Création...' : 'Créer le compte' }}
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-// Importation de ta fonction API (vérifie bien le chemin vers ton dossier services)
-import { fetchUsers } from '../services/api' 
-import { Users, UserCheck, ShieldAlert, Download, Plus, SlidersHorizontal, Eye, CirclePlay, UserX } from 'lucide-vue-next'
+import { fetchUsers, updateUserStatus, deleteUser, updateUser, createUser } from '../services/api' 
+import { Users, UserCheck, ShieldAlert, Download, Plus, Search, Eye, CirclePlay, UserX, Edit2, X } from 'lucide-vue-next'
 
 // --- ÉTATS ---
-const users = ref([])         // Liste réelle des utilisatrices
-const loading = ref(true)     // État de chargement
-const error = ref(null)       // Gestion des erreurs
+const users = ref([])         
+const meta = ref({})          
+const loading = ref(true)     
+const isSubmitting = ref(false)
+const showAddModal = ref(false)
+const modalErrors = ref({})
 
-// --- RÉCUPÉRATION DES DONNÉES ---
+const filters = ref({
+  search: '',
+  role: '',
+  status: '',
+  page: 1
+})
+
+const newUser = ref({
+  name: '',
+  email: '',
+  password: '',
+  password_confirmation: '',
+  role: 'user',
+  is_active: true
+})
+
+// --- RÉCUPÉRATION ---
 const loadUsers = async () => {
   loading.value = true
-  error.value = null
   try {
-    const response = await fetchUsers()
-    // On adapte selon la structure de ta réponse API (souvent response.data)
-    users.value = response.data.users || response.data
+    const response = await fetchUsers(filters.value)
+    users.value = response.data.data
+    meta.value = response.data.meta
   } catch (err) {
-    error.value = "Erreur lors de la récupération des utilisatrices."
     console.error(err)
   } finally {
     loading.value = false
   }
 }
 
+let timeout = null
+const debounceSearch = () => {
+  clearTimeout(timeout)
+  timeout = setTimeout(() => {
+    filters.value.page = 1
+    loadUsers()
+  }, 500)
+}
+
+const changePage = (p) => {
+  filters.value.page = p
+  loadUsers()
+}
+
 onMounted(loadUsers)
 
-// --- STATISTIQUES DYNAMIQUES ---
-// On recalcule automatiquement les chiffres dès que 'users' change
-const stats = computed(() => {
-  const total = users.value.length
-  const actifs = users.value.filter(u => u.status === 'Actif' || u.status === 'active').length
-  const suspendus = total - actifs
-
-  return [
-    { 
-      id: 1, 
-      titre: 'Total Utilisatrices', 
-      valeur: total.toLocaleString(), 
-      icone: Users, 
-      couleurIcone: 'text-sky-600 bg-sky-50' 
-    },
-    { 
-      id: 2, 
-      titre: 'Comptes Actifs', 
-      valeur: actifs.toLocaleString(), 
-      icone: UserCheck, 
-      couleurIcone: 'text-emerald-600 bg-emerald-50' 
-    },
-    { 
-      id: 3, 
-      titre: 'En Attente / Suspendus', 
-      valeur: suspendus.toLocaleString(), 
-      icone: ShieldAlert, 
-      couleurIcone: 'text-amber-600 bg-amber-50' 
+// --- ACTIONS : CRÉATION ---
+const submitCreateUser = async () => {
+  isSubmitting.value = true
+  modalErrors.value = {}
+  try {
+    // Appel à la fonction createUser du fichier api.js (POST /api/admin/users)
+    await createUser(newUser.value)
+    alert("Utilisatrice ajoutée avec succès !")
+    showAddModal.value = false
+    // Réinitialiser le formulaire
+    newUser.value = { name: '', email: '', password: '', password_confirmation: '', role: 'user', is_active: true }
+    loadUsers() // Recharger la liste
+  } catch (err) {
+    if (err.response?.data?.errors) {
+      modalErrors.value = err.response.data.errors
+    } else {
+      alert("Une erreur est survenue lors de la création.")
     }
-  ]
-})
+  } finally {
+    isSubmitting.value = false
+  }
+}
 
-// --- HELPERS (Formatage) ---
+// --- ACTIONS : EXPORT CSV ---
+const exportToCSV = () => {
+  if (users.value.length === 0) return alert("Aucune donnée à exporter.");
+  
+  const headers = ["ID", "Nom", "Email", "Role", "Statut"];
+  const rows = users.value.map(u => [
+    u.id, 
+    u.name, 
+    u.email.toLowerCase(), 
+    u.role.toUpperCase(), 
+    u.is_active ? 'Actif' : 'Inactif'
+  ]);
+
+  const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", `export_utilisatrices_${new Date().toLocaleDateString()}.csv`);
+  link.click();
+}
+
+// --- AUTRES ACTIONS ---
+const handleEditName = async (user) => {
+  const newName = prompt(`Modifier le nom de ${user.name} :`, user.name);
+  if (newName && newName !== user.name) {
+    try {
+      await updateUser(user.id, { name: newName });
+      user.name = newName; 
+      alert("Nom mis à jour !");
+    } catch (err) { alert("Erreur lors de la modification."); }
+  }
+}
+
+const toggleStatus = async (user) => {
+  try {
+    const newStatus = !user.is_active
+    await updateUserStatus(user.id, newStatus)
+    user.is_active = newStatus
+  } catch (err) { alert("Erreur changement statut."); }
+}
+
+const confirmDelete = async (id) => {
+  if (confirm("Supprimer cette utilisatrice ?")) {
+    try {
+      await deleteUser(id)
+      loadUsers()
+    } catch (err) { alert("Erreur lors de la suppression."); }
+  }
+}
+
+// --- STATS ---
+const stats = computed(() => [
+  { id: 1, titre: 'Total Plateforme', valeur: meta.value.total || 0, icone: Users, couleurIcone: 'text-sky-600 bg-sky-50' },
+  { id: 2, titre: 'Actives (Page)', valeur: users.value.filter(u => u.is_active).length, icone: UserCheck, couleurIcone: 'text-emerald-600 bg-emerald-50' },
+  { id: 3, titre: 'Inactives (Page)', valeur: users.value.filter(u => !u.is_active).length, icone: ShieldAlert, couleurIcone: 'text-amber-600 bg-amber-50' }
+])
+
 const formatDate = (dateString) => {
-  if (!dateString) return 'Jamais'
-  return new Date(dateString).toLocaleDateString('fr-FR', {
-    day: 'numeric', month: 'short', year: 'numeric'
-  })
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// Fonction pour mapper les couleurs de statut dynamiquement
-const getStatusClass = (status) => {
-  if (status === 'Actif' || status === 'active') 
-    return 'text-emerald-700 bg-emerald-50 border-emerald-100'
-  return 'text-amber-700 bg-amber-50 border-amber-100'
-}
+const getStatusClass = (isActive) => isActive ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-amber-700 bg-amber-50 border-amber-100'
 </script>
